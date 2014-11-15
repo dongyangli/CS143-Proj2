@@ -161,7 +161,6 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
 	}
 	
 	//if(index) ...
-	
 	rf.close();
 	inf.close();
 	return 0;
