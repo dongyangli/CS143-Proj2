@@ -17,7 +17,7 @@ RC BTLeafNode::read(PageId pid, const PageFile& pf)
 	this->pf = pf;
 	memcpy(node_key, buffer, sizeof(int) * 85);
 	memcpy(node_rid, buffer + sizeof(int) * 85, sizeof(RecordId) * 85);
-	memcpy(node_nextPid, buffer + (sizeof(int) + sizeof(RecordId) * 85), sizeof(int));
+	memcpy((void*)node_nextPid, buffer + (sizeof(int) + sizeof(RecordId) * 85), sizeof(int));
 	return 0; 
 }
     
@@ -33,7 +33,7 @@ RC BTLeafNode::write(PageId pid, PageFile& pf)
 	if(pid < 0)	return RC_INVALID_PID;
 	memcpy(buffer, node_key, sizeof(int) * 85);
 	memcpy(buffer + sizeof(int) * 85, node_rid, sizeof(RecordId) * 85);
-	memcpy(buffer + (sizeof(int) + sizeof(RecordId) * 85), node_nextPid, sizeof(int));
+	memcpy(buffer + (sizeof(int) + sizeof(RecordId) * 85), (void*)node_nextPid, sizeof(int));
 	if((rc = pf.write(pid, buffer)) < 0)	return rc;
 	return 0;
 }
@@ -56,14 +56,14 @@ int BTLeafNode::getKeyCount()
 RC BTLeafNode::insert(int key, const RecordId& rid)
 {	
 	if(keyCount >= 85){
-		return RC_NODE_FULL；
+		return RC_NODE_FULL;
 	}
 	int eid;
 	locate(key, eid);
 	keyCount++; 
 	for(int i = keyCount - 1; i > eid; i--){
-		rid[i] = rid[i - 1];
-		key[i] = key[i - 1];
+		node_rid[i] = node_rid[i - 1];
+		node_key[i] = node_key[i - 1];
 	}
 	node_rid[eid] = rid;
 	node_key[eid] = key;
@@ -88,8 +88,8 @@ RC BTLeafNode::insertAndSplit(int key, const RecordId& rid,
 	locate(key, eid);
 	keyCount++; 
 	for(int i = keyCount - 1; i > eid; i--){
-		rid[i] = rid[i - 1];
-		key[i] = key[i - 1];
+		node_rid[i] = node_rid[i - 1];
+		node_key[i] = node_key[i - 1];
 	}
 	node_rid[eid] = rid;
 	node_key[eid] = key;
@@ -118,11 +118,11 @@ RC BTLeafNode::locate(int searchKey, int& eid)
 	int start = 0, end = keyCount - 1;
 	while(start < keyCount){
 		int mid = (start + keyCount) / 2;
-		if(key[mid] == searchKey){
-			eid = mid
+		if(node_key[mid] == searchKey){
+			eid = mid;
 			return 0;
 		}
-		else if(key[mid] < searchKey){
+		else if(node_key[mid] < searchKey){
 			start = mid + 1;
 		}
 		else{
