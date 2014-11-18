@@ -102,6 +102,12 @@ class BTLeafNode {
     * that contains the node.
     */
     char buffer[PageFile::PAGE_SIZE];
+	int keyCount;
+	int node_key[86]; //85, the extra one is for splitting
+	RecordId node_rid[86]; //85, the extra one is for splitting
+	PageFile pf;
+	PageId node_curPid;
+	PageId node_nextPid; 
 }; 
 
 
