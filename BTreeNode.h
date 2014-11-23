@@ -74,13 +74,6 @@ class BTLeafNode {
     * @return the PageId of the next sibling node 
     */
     PageId getNextNodePtr();
-	
-   /**
-    * Return the pid of the current node.
-    * @return the PageId of the current node 
-    */
-	PageId getNodePtr();
-
 
    /**
     * Set the next slibling node PageId.

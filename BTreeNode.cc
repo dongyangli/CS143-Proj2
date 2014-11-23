@@ -347,7 +347,7 @@ RC BTNonLeafNode::locateChildPtr(int searchKey, PageId& pid)
 	int pos = -1;
 	locateKeyPos(searchKey, pos);
 	if(searchKey < node_key[pos]) pos--;
-	pid = node_pid[pos+1];// could go on searching until find the leaf node
+	pid = node_pid[pos+1];
 	
 	return 0; 
 }
