@@ -12,12 +12,15 @@
 
 #include "RecordFile.h"
 #include "PageFile.h"
-
 /**
  * BTLeafNode: The class representing a B+tree leaf node.
  */
 class BTLeafNode {
   public:
+	  
+  	static const int MAX_KEY_COUNT = 85;  
+  	static const int MAX_PAGEID_COUNT = 85; 
+	  
    /**
     * Insert the (key, rid) pair to the node.
     * Remember that all keys inside a B+tree node should be kept sorted.
@@ -65,6 +68,12 @@ class BTLeafNode {
     * @return the PageId of the next sibling node 
     */
     PageId getNextNodePtr();
+	
+   /**
+    * Return the pid of the current node.
+    * @return the PageId of the current node 
+    */
+	PageId getNodePtr();
 
 
    /**
@@ -105,7 +114,7 @@ class BTLeafNode {
 	int keyCount;
 	int node_key[86]; //85, the extra one is for splitting
 	RecordId node_rid[86]; //85, the extra one is for splitting
-	PageFile pf;
+	PageFile& pf;
 	PageId node_curPid;
 	PageId node_nextPid; 
 }; 
@@ -116,6 +125,9 @@ class BTLeafNode {
  */
 class BTNonLeafNode {
   public:
+	  
+	static const int MAX_KEY_COUNT = 127;  
+	static const int MAX_PAGEID_COUNT = 128;  
    /**
     * Insert a (key, pid) pair to the node.
     * Remember that all keys inside a B+tree node should be kept sorted.
@@ -163,6 +175,12 @@ class BTNonLeafNode {
     * @return the number of keys in the node
     */
     int getKeyCount();
+	
+   /**
+    * Return the pid of the current node.
+    * @return the PageId of the current node 
+    */
+	PageId getNodePtr();
 
    /**
     * Read the content of the node from the page pid in the PageFile pf.
@@ -181,11 +199,27 @@ class BTNonLeafNode {
     RC write(PageId pid, PageFile& pf);
 
   private:
+	  
+   /*
+    * Given the searchKey, find the proper position for it to insert and
+    * output it in pos.
+    * @param searchKey[IN] the searchKey that is being looked up.
+    * @param pos[OUT] the position of the key to insert.
+	* @return 0 if successful. Return an error code if there is an error.
+    */
+    RC locateKeyPos(int searchKey, int& pos);
+	
    /**
     * The main memory buffer for loading the content of the disk page 
     * that contains the node.
-    */
+    */	
     char buffer[PageFile::PAGE_SIZE];
+	int keyCount;
+	int node_key[MAX_KEY_COUNT+1]; //127, the extra one is for splitting
+	PageId node_pid[MAX_PAGEID_COUNT+1]; //128, the extra one is for splitting
+	PageFile& pf;
+	PageId node_curPid;
+	//PageId node_parentPid; 
 }; 
 
 #endif /* BTNODE_H */
