@@ -18,8 +18,8 @@
 class BTLeafNode {
   public:
 	  
-  	static const int MAX_KEY_COUNT = 85;  
-  	static const int MAX_PAGEID_COUNT = 85; 
+  	static const int MAX_KEY_COUNT = 84;  
+  	static const int MAX_PAGEID_COUNT = 84; 
 	  
    /**
     * Insert the (key, rid) pair to the node.

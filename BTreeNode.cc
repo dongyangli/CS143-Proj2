@@ -12,12 +12,16 @@ RC BTLeafNode::read(PageId pid, const PageFile& pf)
 {
 	RC rc = 0;
 	if(pid < 0)	return RC_INVALID_PID;
-	if((rc = pf.read(pid, buffer)) < 0)		return rc;
-	node_curPid = pid;
 	this->pf = pf; 
-	memcpy(node_key, buffer, sizeof(int) * 85);
-	memcpy(node_rid, buffer + sizeof(int) * 85, sizeof(RecordId) * 85);
-	memcpy(&node_nextPid, buffer + (sizeof(int) + sizeof(RecordId) * 85), sizeof(int));
+	node_curPid = pid;
+	keyCount = 0;
+	if(pf.endPid() == 0) return 0;// if the end pid is zero, the file is empty.
+	
+	if((rc = pf.read(pid, buffer)) < 0)		return rc;
+	memcpy(&keyCount, buffer, sizeof(int));
+	memcpy(node_key, buffer + sizeof(int), sizeof(int) * MAX_KEY_COUNT);
+	memcpy(node_rid, buffer + sizeof(int) + sizeof(int) * MAX_KEY_COUNT, sizeof(RecordId) * MAX_PAGEID_COUNT);
+	memcpy(&node_nextPid, buffer + sizeof(int) + (sizeof(int) * MAX_KEY_COUNT + sizeof(RecordId) * MAX_PAGEID_COUNT), sizeof(int));
 	return 0; 
 }
     
@@ -31,9 +35,10 @@ RC BTLeafNode::write(PageId pid, PageFile& pf)
 {
 	RC rc = 0;
 	if(pid < 0)	return RC_INVALID_PID;
-	memcpy(buffer, node_key, sizeof(int) * 85);
-	memcpy(buffer + sizeof(int) * 85, node_rid, sizeof(RecordId) * 85);
-	memcpy(buffer + (sizeof(int) + sizeof(RecordId) * 85), &node_nextPid, sizeof(int));
+	memcpy(buffer, &keyCount, sizeof(int));
+	memcpy(buffer + sizeof(int), node_key, sizeof(int) * MAX_KEY_COUNT);
+	memcpy(buffer + sizeof(int) + sizeof(int) * MAX_KEY_COUNT, node_rid, sizeof(RecordId) * MAX_PAGEID_COUNT);
+	memcpy(buffer + sizeof(int) + (sizeof(int) * MAX_KEY_COUNT + sizeof(RecordId) * MAX_PAGEID_COUNT), &node_nextPid, sizeof(int));
 	if((rc = pf.write(pid, buffer)) < 0)	return rc;
 	return 0;
 }
@@ -206,11 +211,15 @@ RC BTNonLeafNode::read(PageId pid, const PageFile& pf)
 {
 	RC rc = 0;
 	if(pid < 0)	return RC_INVALID_PID;
-	if((rc = pf.read(pid, buffer)) < 0)		return rc;
+	this->pf = pf; 
 	node_curPid = pid;
-	this->pf = pf;
-	memcpy(node_key, buffer, sizeof(int) * MAX_KEY_COUNT);
-	memcpy(node_pid, buffer + sizeof(int) * MAX_KEY_COUNT, sizeof(PageId) * MAX_PAGEID_COUNT);
+	keyCount = 0;
+	if(pf.endPid() == 0) return 0;// if the end pid is zero, the file is empty.
+	
+	if((rc = pf.read(pid, buffer)) < 0)		return rc;
+	memcpy(&keyCount, buffer, sizeof(int));
+	memcpy(node_key, buffer + sizeof(int), sizeof(int) * MAX_KEY_COUNT);
+	memcpy(node_pid, buffer + sizeof(int) + sizeof(int) * MAX_KEY_COUNT, sizeof(PageId) * MAX_PAGEID_COUNT);
 	return 0; 
 }
     
@@ -224,8 +233,9 @@ RC BTNonLeafNode::write(PageId pid, PageFile& pf)
 {
 	RC rc = 0;
 	if(pid < 0)	return RC_INVALID_PID;
-	memcpy(buffer, node_key, sizeof(int) * MAX_KEY_COUNT);
-	memcpy(buffer + sizeof(int) * MAX_KEY_COUNT, node_pid, sizeof(PageId) * MAX_PAGEID_COUNT);
+	memcpy(buffer, &keyCount, sizeof(int));
+	memcpy(buffer + sizeof(int), node_key, sizeof(int) * MAX_KEY_COUNT);
+	memcpy(buffer + sizeof(int) + sizeof(int) * MAX_KEY_COUNT, node_pid, sizeof(PageId) * MAX_PAGEID_COUNT);
 	if((rc = pf.write(pid, buffer)) < 0)	return rc;
 	return 0;
 }
