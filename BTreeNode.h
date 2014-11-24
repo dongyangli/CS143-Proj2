@@ -204,8 +204,8 @@ class BTNonLeafNode {
 	
 	// used for tests
 	RC print();
-	RC getKeys(int** keys);
-	RC getPageIds(PageId** pageIds);
+	RC getKeysPtr(int** keys);
+	RC getPageIdsPtr(PageId** pageIds);
 
   private:
 	  

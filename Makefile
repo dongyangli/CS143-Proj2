@@ -11,4 +11,4 @@ SqlParser.tab.c: SqlParser.y
 	bison -d -psql $<
 
 clean:
-	rm -f bruinbase test1_BTreeNode.exe *.o *~ lex.sql.c SqlParser.tab.c SqlParser.tab.h 
+	rm -f test1_BTreeNode test1_BTreeNode.exe *.o *~ lex.sql.c SqlParser.tab.c SqlParser.tab.h 

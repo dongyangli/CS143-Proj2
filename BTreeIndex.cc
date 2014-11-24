@@ -269,3 +269,5 @@ static PageId getRootId(const char* page){
 static void setRootId(char* page, PageId rootId){
 	memcpy(page + sizeof(int), &rootId, sizeof(PageId));
 }
+
+

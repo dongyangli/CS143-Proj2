@@ -19,8 +19,10 @@
 
 using namespace std;
 
-void testLeafNode_insert1(){
+RC testLeafNode_insert1(){
     cout << "in testLeafNode_insert1 now" << endl;
+    
+    RC     rc;
     
     PageFile pf;
     if ((rc = pf.open("test.idx", 'w')) < 0){
@@ -37,18 +39,61 @@ void testLeafNode_insert1(){
     rid.pid = 0;
     rid.sid = 0;
     leafNode.insert(key, rid);
-    
     assert(leafNode.getKeyCount() == 1);
-    std::cout << "Execution continues past the first assert\n";
+    std::cout << "Execution continues past the keyCount assert\n";
     // test keys;
-    int** keys;
-    leafNode.getKeysPtr(keys);
-    
+    leafNode.print();
+    int* keys;
+    leafNode.getKeysPtr(&keys);
+    assert(keys[0] == key);
+    std::cout << "Execution continues past the keys assert\n";
     
 }
 
-void testLeafNode_insert50(){
+RC testLeafNode_insert50(){
     
+    RC     rc;
+    int    key;
+    string value;
+    
+    std::ifstream inf("test_50keys.del");
+    if (!inf.is_open()){
+        rc = RC_FILE_OPEN_FAILED;
+        cout << "Failed to open file\n";
+        return rc;
+    }
+    
+    PageFile pf;
+    if ((rc = pf.open("test.idx", 'w')) < 0){
+        cout << "Failed to open file\n";
+        return rc;
+    }
+    PageId eid = pf.endPid();
+    BTLeafNode leafNode;
+    leafNode.read(eid, pf);
+    cout<<"current(before insert) keyCount is " << leafNode.getKeyCount() <<endl;
+    cout << "Start parsing and inserting...\n";
+    string line;
+    while(std::getline(inf, line)) {
+        // process the line
+        if((rc = SqlEngine::parseLoadLine(line, key, value))<0) {
+            cout << "parse line failed" <<endl;
+            return rc;
+        }
+        RecordId rid;
+        rid.pid = 0;
+        rid.sid = 0;
+        leafNode.insert(key, rid);
+    }
+    //leafNode.print();
+    leafNode.write(eid, pf);
+    cout << "Print done...\n";
+    
+    assert(leafNode.getKeyCount() == 50);
+    std::cout << "Execution continues past the keyCount assert\n";
+    
+    inf.close();
+    return 0;
 }
 
 
@@ -60,56 +105,13 @@ int main(int argc, const char * argv[]) {
     for (int i = 0; i < argc; i++) {
         cout << "argv "<<i<<" is " << argv[i] <<endl;
     }
+    testLeafNode_insert1();
+    testLeafNode_insert50();
+    //testNonLeafNode_insert1();
+    //testNodLeafNode_insert50();
     
-    RC     rc;
-    int    key;
-    string value;
-    
-    std::ifstream inf(argv[1]);
-    if (!inf.is_open()){
-        rc = RC_FILE_OPEN_FAILED;
-        cout << "Failed to open file\n";
-        return rc;
-    }
-    
-    string line;
-    // --- idx
-    PageFile pf;
-    if ((rc = pf.open("test.idx", 'w')) < 0){
-        cout << "Failed to open file\n";
-        return rc;
-    }
-    PageId eid = pf.endPid();
-    BTLeafNode leafNode;
-    leafNode.read(eid, pf);
-    cout<<"current(before insert) keyCount is " << leafNode.getKeyCount() <<endl;
-    // --- idx
-    cout << "Start parsing and inserting...\n";
-    int count = 0;
-    while(std::getline(inf, line)) {
-        // process the line
-        if((rc = SqlEngine::parseLoadLine(line, key, value))<0) {
-            cout << "parse line failed" <<endl;
-            return rc;
-        }
-        RecordId rid;
-        rid.pid = 0;
-        rid.sid = 0;
-        leafNode.insert(key, rid);
-        count++;
-        if(count == 1){
-            //cout <<"first insert!"<<endl;
-            //cout<<"current keyCount is " << leafNode.getKeyCount() <<endl;
-            //leafNode.print();
-        }
-    }
-    cout << "Inserting done...\n";
-    cout<<"Totally inserted keyCount " << count <<endl;
-    cout<<"current keyCount is " << leafNode.getKeyCount() <<endl;
-    //leafNode.print();
-    
-    cout << "Print done...\n";
-    
-    inf.close();
+    //testLeafNode_insertAndSplit();
+    //testNonLeafNode_insertAndSplit();
     return 0;
+    
 }
