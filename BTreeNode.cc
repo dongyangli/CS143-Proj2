@@ -21,8 +21,8 @@ RC BTLeafNode::read(PageId pid, const PageFile& pf)
 	memcpy(&keyCount, buffer, sizeof(int));
 	printf("I'm in read, the keyCount here is %d\n", keyCount);
 	memcpy(node_key, buffer + sizeof(int), sizeof(int) * MAX_KEY_COUNT);
-	memcpy(node_rid, buffer + sizeof(int) + sizeof(int) * MAX_KEY_COUNT, sizeof(RecordId) * MAX_PAGEID_COUNT);
-	memcpy(&node_nextPid, buffer + sizeof(int) + (sizeof(int) * MAX_KEY_COUNT + sizeof(RecordId) * MAX_PAGEID_COUNT), sizeof(int));
+	memcpy(node_rid, buffer + sizeof(int) + sizeof(int) * MAX_KEY_COUNT, sizeof(RecordId) * MAX_RECORDID_COUNT);
+	memcpy(&node_nextPid, buffer + sizeof(int) + (sizeof(int) * MAX_KEY_COUNT + sizeof(RecordId) * MAX_RECORDID_COUNT), sizeof(int));
 	return 0; 
 }
     
@@ -38,9 +38,11 @@ RC BTLeafNode::write(PageId pid, PageFile& pf)
 	if(pid < 0)	return RC_INVALID_PID;
 	printf("I'm in write, the keyCount here is %d\n", keyCount);
 	memcpy(buffer, &keyCount, sizeof(keyCount));
+
 	memcpy(buffer + sizeof(int), node_key, sizeof(int) * MAX_KEY_COUNT);
-	memcpy(buffer + sizeof(int) + sizeof(int) * MAX_KEY_COUNT, node_rid, sizeof(RecordId) * MAX_PAGEID_COUNT);
-	memcpy(buffer + sizeof(int) + (sizeof(int) * MAX_KEY_COUNT + sizeof(RecordId) * MAX_PAGEID_COUNT), &node_nextPid, sizeof(int));
+	memcpy(buffer + sizeof(int) + sizeof(int) * MAX_KEY_COUNT, node_rid, sizeof(RecordId) * MAX_RECORDID_COUNT);
+	memcpy(buffer + sizeof(int) + (sizeof(int) * MAX_KEY_COUNT + sizeof(RecordId) * MAX_RECORDID_COUNT), &node_nextPid, sizeof(int));
+
 	if((rc = pf.write(pid, buffer)) < 0)	return rc;
 	return 0;
 }
@@ -63,7 +65,6 @@ int BTLeafNode::getKeyCount()
 RC BTLeafNode::insert(int key, const RecordId& rid)
 {	
 	read(node_curPid, pf);
-	
 	if(keyCount >= MAX_KEY_COUNT){
 		return RC_NODE_FULL;
 	}
@@ -210,7 +211,7 @@ RC BTLeafNode::getKeysPtr(int** keys)(){
 RC BTLeafNode::getRecordIdsPtr(RecordId** recordIds){
 	
 	*recordIds = new RecordId[MAX_PAGEID_COUNT+1];
-	memcpy(*recordIds, node_rid, sizeof(RecordId)*(MAX_PAGEID_COUNT+1));
+	memcpy(*recordIds, node_rid, sizeof(RecordId)*(MAX_RECORDID_COUNT+1));
 	return 0;
 }
 
@@ -419,7 +420,7 @@ RC BTNonLeafNode::print(){
 RC BTNonLeafNode::getKeysPtr(int** keys)(){
 	
 	*keys = new int[MAX_KEY_COUNT+1];
-	memcpy(*key, node_key, sizeof(int)*(MAX_KEY_COUNT+1));
+	memcpy(*keys, node_key, sizeof(int)*(MAX_KEY_COUNT+1));
 	return 0;
 }
 

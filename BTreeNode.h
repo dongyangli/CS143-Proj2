@@ -19,7 +19,7 @@ class BTLeafNode {
   public:
 	  
   	static const int MAX_KEY_COUNT = 84;  
-  	static const int MAX_PAGEID_COUNT = 84; 
+  	static const int MAX_RECORDID_COUNT = 84; 
 	  
    /**
     * Insert the (key, rid) pair to the node.
@@ -117,7 +117,7 @@ class BTLeafNode {
     char buffer[PageFile::PAGE_SIZE];
 	int keyCount;
 	int node_key[MAX_KEY_COUNT+1]; //84, the extra one is for splitting
-	RecordId node_rid[MAX_PAGEID_COUNT+1]; //84, the extra one is for splitting
+	RecordId node_rid[MAX_RECORDID_COUNT+1]; //84, the extra one is for splitting
 	PageFile pf;
 	PageId node_curPid;
 	PageId node_nextPid; 

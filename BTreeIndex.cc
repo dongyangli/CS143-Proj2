@@ -13,12 +13,22 @@
 
 using namespace std;
 
+static int getTreeHeight(const char* page);
+
+static void setTreeHeight(char* page, int treeHeight);
+
+static PageId getRootId(const char* page);
+
+static void setRootId(char* page, PageId rootId);
+
 /*
  * BTreeIndex constructor
  */
 BTreeIndex::BTreeIndex()
 {
+	ePid = 0;
     rootPid = -1;
+	treeHeight = 0;
 }
 
 /*
@@ -30,6 +40,31 @@ BTreeIndex::BTreeIndex()
  */
 RC BTreeIndex::open(const string& indexname, char mode)
 {
+	RC rc;
+	char page[PageFile::PAGE_SIZE];
+	
+	///open the page file
+	if((rc = pf.open(indexname, mode)) < 0)	return rc;
+	
+	ePid = pf.endPid();
+	rootPid = -1;
+	treeHeight = 0;
+	if(ePid == 0){
+		ePid++;
+		setRootId(page, rootPid);
+		setTreeHeight(page, treeHeight);
+		if((rc = pf.write(0, page)) < 0)	return rc;
+	}
+	else{
+		if((rc = pf.read(0, page)) < 0){
+			ePid = 0;
+			pf.close();
+			return rc;
+		}
+		rootPid = getRootId(page);
+		treeHeight = getTreeHeight(page);
+	}
+
     return 0;
 }
 
@@ -39,7 +74,7 @@ RC BTreeIndex::open(const string& indexname, char mode)
  */
 RC BTreeIndex::close()
 {
-    return 0;
+    return pf.close();
 }
 
 /*
@@ -50,7 +85,43 @@ RC BTreeIndex::close()
  */
 RC BTreeIndex::insert(int key, const RecordId& rid)
 {
-    return 0;
+	RC rc;
+	int newKey;
+	PageId newPid;
+	char page[PageFile::PAGE_SIZE];
+	
+	///B+ tree is empty
+	if(rootPid == -1){
+		BTLeafNode newRoot;
+		newRoot.read(ePid++, pf);
+		newRoot.insert(key, rid);
+		rootPid = ePid - 1;
+		treeHeight++;
+		setRootId(page, rootPid);
+		setTreeHeight(page, treeHeight);
+		if((rc = pf.write(0, page)) < 0)	return rc;
+		return 0;
+	}
+	
+	if(treeHeight == 1){
+		insert(key, rid, rootPid, newKey, newPid);
+	}
+	else{
+		insert(key, rid, rootPid, 1, newKey, newPid);
+	}
+	
+	///new root
+	if(newKey != -1){
+		BTNonLeafNode newRoot;
+		newRoot.read(ePid++, pf);
+		newRoot.initializeRoot(rootPid, newKey, newPid);
+		rootPid = ePid - 1;
+		treeHeight++;
+		setRootId(page, rootPid);
+		setTreeHeight(page, treeHeight);
+		if((rc = pf.write(0, page)) < 0)	return rc;
+	}
+	return 0;
 }
 
 /*
@@ -74,6 +145,19 @@ RC BTreeIndex::insert(int key, const RecordId& rid)
  */
 RC BTreeIndex::locate(int searchKey, IndexCursor& cursor)
 {
+	RC rc;
+	int level = 1;
+	PageId curPid = rootPid;
+	while(level < treeHeight){
+		BTNonLeafNode curNode;
+		curNode.read(curPid, pf);
+		curNode.locateChildPtr(searchKey, curPid);
+		level++;
+	}
+	BTLeafNode curLeafNode;
+	curLeafNode.read(curPid, pf);
+	curLeafNode.locate(searchKey, cursor.eid);
+	cursor.pid = curPid;
     return 0;
 }
 
@@ -87,5 +171,101 @@ RC BTreeIndex::locate(int searchKey, IndexCursor& cursor)
  */
 RC BTreeIndex::readForward(IndexCursor& cursor, int& key, RecordId& rid)
 {
+	BTLeafNode curNode;
+	curNode.read(cursor.pid, pf);
+	curNode.readEntry(cursor.eid, key, rid);
+	if(cursor.eid == BTLeafNode::MAX_RECORDID_COUNT){
+		cursor.pid = curNode.getNextNodePtr();
+		cursor.eid = 0;
+	}
+	else{
+		cursor.eid++;
+	}
     return 0;
+}
+
+/*
+ * Nonleaf Node
+ * @param key[IN] the key for the value inserted into the index
+ * @param rid[IN] the RecordId for the record being inserted into the index
+ * @param pid[IN] the PageId of the current node
+ * @param level[IN] the level of current node in the B+ tree
+ * @param newPid[OUT] the new pid of the new slibing node
+ * @param newKey[OUT] the new key of the last level
+ * @return error code. 0 if no error
+ */
+RC BTreeIndex::insert(int key, const RecordId& rid, PageId pid, int level, int &newKey, int &newPid)
+{
+	BTNonLeafNode curNode, sibling;
+	PageId nextPid, siblingPid;
+	int midKey;
+	
+	curNode.read(pid, pf);
+	curNode.locateChildPtr(key, nextPid);
+	
+	
+	if(level + 1 < treeHeight){
+		insert(key, rid, nextPid, midKey, siblingPid);
+	}
+	else{
+		insert(key, rid, nextPid, level + 1, midKey, siblingPid);
+	}
+	
+	newPid = -1;
+	if(siblingPid != -1){
+		if((level + 1 == treeHeight && curNode.getKeyCount() < BTLeafNode::MAX_KEY_COUNT) 
+		|| (level + 1 < treeHeight && curNode.getKeyCount() < BTNonLeafNode::MAX_KEY_COUNT)){
+			curNode.insert(midKey, siblingPid);
+		}
+		else{
+			sibling.read(ePid++, pf);
+			curNode.insertAndSplit(midKey, siblingPid, sibling, newKey);
+			newPid = sibling.getNodePtr();
+		}
+	}
+	return 0;
+}
+/*
+ * Leaf Node
+ * @param key[IN] the key for the value inserted into the index
+ * @param rid[IN] the RecordId for the record being inserted into the index
+ * @param pid[IN] the PageId of the current node
+ * @param newPid[OUT] the new pid of the new slibing node
+ * @param newKey[OUT] the new key of the last level
+ * @return error code. 0 if no error
+ */
+RC BTreeIndex::insert(int key, const RecordId& rid, PageId pid, int &newKey, int &newPid)
+{
+	BTLeafNode curNode, sibling;
+	curNode.read(pid, pf);
+	newPid = -1;
+	if(curNode.getKeyCount() < BTLeafNode::MAX_KEY_COUNT){
+		curNode.insert(key, rid);
+	}
+	else{
+		newPid = ePid++;
+		sibling.read(newPid, pf);
+		curNode.insertAndSplit(key, rid, sibling, newKey);
+	}
+	return 0;
+}
+
+static int getTreeHeight(const char* page){
+	int treeHeight;
+	memcpy(&treeHeight, page, sizeof(int));
+	return treeHeight;
+}
+
+static void setTreeHeight(char* page, int treeHeight){
+	memcpy(page, &treeHeight, sizeof(int));
+}
+
+static PageId getRootId(const char* page){
+	PageId rootId;
+	memcpy(&rootId, page + sizeof(int), sizeof(PageId));
+	return rootId;
+}
+
+static void setRootId(char* page, PageId rootId){
+	memcpy(page + sizeof(int), &rootId, sizeof(PageId));
 }

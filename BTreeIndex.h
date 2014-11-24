@@ -91,8 +91,33 @@ class BTreeIndex {
   RC readForward(IndexCursor& cursor, int& key, RecordId& rid);
   
  private:
+	 
+ /*
+  * Nonleaf Node
+  * @param key[IN] the key for the value inserted into the index
+  * @param rid[IN] the RecordId for the record being inserted into the index
+  * @param pid[IN] the PageId of the current node
+  * @param level[IN] the level of current node in the B+ tree
+  * @param newPid[OUT] the new pid of the new slibing node
+  * @param newKey[OUT] the new key of the last level
+  * @return error code. 0 if no error
+  */
+  RC insert(int key, const RecordId& rid, PageId pid, int level, int &newKey, int &newPid);
+ /*
+  * Leaf Node
+  * @param key[IN] the key for the value inserted into the index
+  * @param rid[IN] the RecordId for the record being inserted into the index
+  * @param pid[IN] the PageId of the current node
+  * @param newPid[OUT] the new pid of the new slibing node
+  * @param newKey[OUT] the new key of the last level
+  * @return error code. 0 if no error
+  */
+  RC insert(int key, const RecordId& rid, PageId pid, int &newKey, int &newPid);
+ 
   PageFile pf;         /// the PageFile used to store the actual b+tree in disk
 
+  PageId   ePid;	   /// the PageId of the last page + 1
+  ///rootPid and treeHeight are stored in the first page of the index file.
   PageId   rootPid;    /// the PageId of the root node
   int      treeHeight; /// the height of the tree
   /// Note that the content of the above two variables will be gone when
