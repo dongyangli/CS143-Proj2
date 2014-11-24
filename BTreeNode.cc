@@ -202,13 +202,13 @@ RC BTLeafNode::print(){
 
 RC BTLeafNode::getKeysPtr(int** keys)(){
 	
-	keys = &node_key;
+	*keys = node_key;
 	return 0;
 }
 
 RC BTLeafNode::getRecordIdsPtr(RecordId** recordIds){
 	
-	recordIds = &node_rid;
+	*recordIds = node_rid;
 	return 0;
 }
 
@@ -416,13 +416,13 @@ RC BTNonLeafNode::print(){
 
 RC BTNonLeafNode::getKeysPtr(int** keys)(){
 	
-	keys = &node_key;
+	*keys = node_key;
 	return 0;
 }
 
 RC BTNonLeafNode::getPageIdsPtr(PageId** pageIds){
 	
-	pageIds = &node_pid;
+	*pageIds = node_pid;
 	return 0;
 }
 

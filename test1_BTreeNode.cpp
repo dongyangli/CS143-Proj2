@@ -41,6 +41,8 @@ void testLeafNode_insert1(){
     assert(leafNode.getKeyCount() == 1);
     std::cout << "Execution continues past the first assert\n";
     // test keys;
+    int** keys;
+    leafNode.getKeysPtr(keys);
     
     
 }
