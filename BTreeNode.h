@@ -103,6 +103,11 @@ class BTLeafNode {
     * @return 0 if successful. Return an error code if there is an error.
     */
     RC write(PageId pid, PageFile& pf);
+	
+	// used for tests
+	RC print();
+	RC getKeysPtr(int** keys);
+	RC getRecordIdsPtr(RecordId** recordIds);
 
   private:
    /**
@@ -111,9 +116,9 @@ class BTLeafNode {
     */
     char buffer[PageFile::PAGE_SIZE];
 	int keyCount;
-	int node_key[86]; //85, the extra one is for splitting
-	RecordId node_rid[86]; //85, the extra one is for splitting
-	PageFile& pf;
+	int node_key[MAX_KEY_COUNT+1]; //84, the extra one is for splitting
+	RecordId node_rid[MAX_PAGEID_COUNT+1]; //84, the extra one is for splitting
+	PageFile pf;
 	PageId node_curPid;
 	PageId node_nextPid; 
 }; 
@@ -196,6 +201,11 @@ class BTNonLeafNode {
     * @return 0 if successful. Return an error code if there is an error.
     */
     RC write(PageId pid, PageFile& pf);
+	
+	// used for tests
+	RC print();
+	RC getKeys(int** keys);
+	RC getPageIds(PageId** pageIds);
 
   private:
 	  
@@ -216,7 +226,7 @@ class BTNonLeafNode {
 	int keyCount;
 	int node_key[MAX_KEY_COUNT+1]; //127, the extra one is for splitting
 	PageId node_pid[MAX_PAGEID_COUNT+1]; //128, the extra one is for splitting
-	PageFile& pf;
+	PageFile pf;
 	PageId node_curPid;
 	//PageId node_parentPid; 
 }; 

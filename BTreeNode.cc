@@ -19,6 +19,7 @@ RC BTLeafNode::read(PageId pid, const PageFile& pf)
 	
 	if((rc = pf.read(pid, buffer)) < 0)		return rc;
 	memcpy(&keyCount, buffer, sizeof(int));
+	printf("I'm in read, the keyCount here is %d\n", keyCount);
 	memcpy(node_key, buffer + sizeof(int), sizeof(int) * MAX_KEY_COUNT);
 	memcpy(node_rid, buffer + sizeof(int) + sizeof(int) * MAX_KEY_COUNT, sizeof(RecordId) * MAX_PAGEID_COUNT);
 	memcpy(&node_nextPid, buffer + sizeof(int) + (sizeof(int) * MAX_KEY_COUNT + sizeof(RecordId) * MAX_PAGEID_COUNT), sizeof(int));
@@ -35,7 +36,8 @@ RC BTLeafNode::write(PageId pid, PageFile& pf)
 {
 	RC rc = 0;
 	if(pid < 0)	return RC_INVALID_PID;
-	memcpy(buffer, &keyCount, sizeof(int));
+	printf("I'm in write, the keyCount here is %d\n", keyCount);
+	memcpy(buffer, &keyCount, sizeof(keyCount));
 	memcpy(buffer + sizeof(int), node_key, sizeof(int) * MAX_KEY_COUNT);
 	memcpy(buffer + sizeof(int) + sizeof(int) * MAX_KEY_COUNT, node_rid, sizeof(RecordId) * MAX_PAGEID_COUNT);
 	memcpy(buffer + sizeof(int) + (sizeof(int) * MAX_KEY_COUNT + sizeof(RecordId) * MAX_PAGEID_COUNT), &node_nextPid, sizeof(int));
@@ -60,7 +62,9 @@ int BTLeafNode::getKeyCount()
  */
 RC BTLeafNode::insert(int key, const RecordId& rid)
 {	
-	if(keyCount >= 85){
+	read(node_curPid, pf);
+	
+	if(keyCount >= MAX_KEY_COUNT){
 		return RC_NODE_FULL;
 	}
 	int eid;
@@ -188,8 +192,25 @@ RC BTLeafNode::setNextNodePtr(PageId pid)
 }
 
 
+RC BTLeafNode::print(){
+	
+	for(int i = 0; i < keyCount; i++){
+		printf("key: %d is %d \n", i, node_key[i]);
+	}
+	return 0;
+}
 
+RC BTLeafNode::getKeysPtr(int** keys)(){
+	
+	keys = &node_key;
+	return 0;
+}
 
+RC BTLeafNode::getRecordIdsPtr(RecordId** recordIds){
+	
+	recordIds = &node_rid;
+	return 0;
+}
 
 
 
@@ -384,3 +405,25 @@ RC BTNonLeafNode::initializeRoot(PageId pid1, int key, PageId pid2)
 	
 	return 0; 
 }
+
+RC BTNonLeafNode::print(){
+	
+	for(int i = 0; i < keyCount; i++){
+		printf("key: %d is %d \n", i, node_key[i]);
+	}
+	return 0;
+}
+
+RC BTNonLeafNode::getKeysPtr(int** keys)(){
+	
+	keys = &node_key;
+	return 0;
+}
+
+RC BTNonLeafNode::getPageIdsPtr(PageId** pageIds){
+	
+	pageIds = &node_pid;
+	return 0;
+}
+
+
