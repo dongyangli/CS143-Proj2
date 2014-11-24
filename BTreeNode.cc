@@ -202,13 +202,15 @@ RC BTLeafNode::print(){
 
 RC BTLeafNode::getKeysPtr(int** keys)(){
 	
-	*keys = node_key;
+	*keys = new int[MAX_KEY_COUNT+1];
+	memcpy(*key, node_key, sizeof(int)*(MAX_KEY_COUNT+1));
 	return 0;
 }
 
 RC BTLeafNode::getRecordIdsPtr(RecordId** recordIds){
 	
-	*recordIds = node_rid;
+	*recordIds = new RecordId[MAX_PAGEID_COUNT+1];
+	memcpy(*recordIds, node_rid, sizeof(RecordId)*(MAX_PAGEID_COUNT+1));
 	return 0;
 }
 
@@ -416,13 +418,15 @@ RC BTNonLeafNode::print(){
 
 RC BTNonLeafNode::getKeysPtr(int** keys)(){
 	
-	*keys = node_key;
+	*keys = new int[MAX_KEY_COUNT+1];
+	memcpy(*key, node_key, sizeof(int)*(MAX_KEY_COUNT+1));
 	return 0;
 }
 
 RC BTNonLeafNode::getPageIdsPtr(PageId** pageIds){
 	
-	*pageIds = node_pid;
+	*pageIds = new int[MAX_PAGEID_COUNT+1];
+	memcpy(*pageIds, node_pid, sizeof(PageId)*(MAX_PAGEID_COUNT+1));
 	return 0;
 }
 
