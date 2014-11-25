@@ -101,6 +101,7 @@ RC BTLeafNode::insertAndSplit(int key, const RecordId& rid,
 	node_rid[eid] = rid;
 	node_key[eid] = key;
 	
+	siblingKey = node_key[keyCount/2];
 	for(int i = keyCount / 2; i < keyCount; i++){
 		sibling.insert(node_key[i], node_rid[i]);
 	}
