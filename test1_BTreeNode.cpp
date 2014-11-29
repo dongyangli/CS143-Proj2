@@ -225,6 +225,10 @@ RC testLeafNode_insertAndSplit(){
             leafNode.insertAndSplit(key, rid, siblingLeafNode, siblingKey);
             siblingLeafNode.write(siblingEid, pf);
             assert(leafNode.getKeyCount() == 42);// 84/2
+            // test the NodePtr func
+            assert(siblingLeafNode.getNodePtr() == siblingEid);
+            assert(leafNode.getNextNodePtr() == siblingLeafNode.getNodePtr());
+            
         }
         count++;
     }
@@ -315,19 +319,316 @@ RC testNonLeafNode_insertAndSplit() {
     
 }
 
+
+RC testBTreeIndexInsert1(){
+    
+    RC     rc;
+    int    key;
+    string value;
+    
+    BTreeIndex idx;
+    if ((rc = idx.open("testBTreeIndexInsert1.idx", 'w')) < 0){
+        cout << "Failed to open file\n";
+        return rc;
+    }
+    
+    key = 0;
+    RecordId rid;
+    
+    
+    if ((rc = idx.insert(key, rid)) < 0){
+        cout << "Failed to insert\n";
+        return rc;
+    }
+    
+    int treeHeight;
+    PageId rootPid;
+    idx.get_rootPid(rootPid);
+    idx.get_treeHeight(treeHeight);
+    //std::cout << "Current treeHeight is " << treeHeight <<endl;
+    //test
+    assert(rootPid == 1);
+    std::cout << "Execution continues past the getRootPid assert\n";
+    assert(treeHeight == 1);
+    std::cout << "Execution continues past the TreeHeight assert\n";
+    
+    idx.close();
+    return 0;
+}
+
+RC testBTreeIndexInsert50(){
+    
+    RC     rc;
+    int    key;
+    string value;
+    
+    std::ifstream inf("movie.del");
+    if (!inf.is_open()){
+        rc = RC_FILE_OPEN_FAILED;
+        cout << "Failed to open file\n";
+        return rc;
+    }
+    
+    BTreeIndex idx;
+    if ((rc = idx.open("testBTreeIndexInsert50.idx", 'w')) < 0){
+        cout << "Failed to open file\n";
+        return rc;
+    }
+    
+    RecordId rid;
+    
+    string line;
+    int count = 0;
+    while(std::getline(inf, line) && count < 50) {
+        // process the line
+        if((rc = SqlEngine::parseLoadLine(line, key, value))<0) {
+            cout << "parse line failed" <<endl;
+            return rc;
+        }
+        PageId pid = 0;
+        if ((rc = idx.insert(key, rid)) < 0){
+            cout << "Failed to insert\n";
+            return rc;
+        }
+        count++;
+    }
+    
+    int treeHeight;
+    PageId rootPid;
+    idx.get_rootPid(rootPid);
+    idx.get_treeHeight(treeHeight);
+    
+    //test
+    assert(rootPid == 1);
+    std::cout << "Execution continues past the getRootPid assert\n";
+    assert(treeHeight == 1);
+    std::cout << "Execution continues past the TreeHeight assert\n";
+    
+    idx.close();
+    inf.close();
+    return 0;
+}
+
+RC testBTreeIndexInsert10(){
+    
+    // modify the LeafNode keyCount to 3, and NonLeafNode keyCount to 3 as well
+    
+    RC     rc;
+    int    key;
+    string value;
+    
+    std::ifstream inf("movie.del");
+    if (!inf.is_open()){
+        rc = RC_FILE_OPEN_FAILED;
+        cout << "Failed to open file\n";
+        return rc;
+    }
+    
+    BTreeIndex idx;
+    if ((rc = idx.open("testBTreeIndexInsert10.idx", 'w')) < 0){
+        cout << "Failed to open file\n";
+        return rc;
+    }
+    
+    RecordId rid;
+    
+    string line;
+    int count = 0;
+    while(std::getline(inf, line) && count < 10) {
+        // process the line
+        if((rc = SqlEngine::parseLoadLine(line, key, value))<0) {
+            cout << "parse line failed" <<endl;
+            return rc;
+        }
+        PageId pid = 0;
+        if ((rc = idx.insert(key, rid)) < 0){
+            cout << "Failed to insert\n";
+            return rc;
+        }
+        count++;
+    }
+    
+    int treeHeight;
+    PageId rootPid;
+    idx.get_rootPid(rootPid);
+    idx.get_treeHeight(treeHeight);
+    
+    //test
+    assert(rootPid == 8);
+    std::cout << "Execution continues past the getRootPid assert\n";
+    assert(treeHeight == 3);
+    std::cout << "Execution continues past the TreeHeight assert\n";
+    idx.printRootNode();
+    idx.close();
+    inf.close();
+    return 0;
+}
+
+RC testBTreeIndexReadForward(){
+    RC     rc;
+    int    key;
+    RecordId rid;
+    string value;
+    
+    std::ifstream inf("movie.del");
+    if (!inf.is_open()){
+        rc = RC_FILE_OPEN_FAILED;
+        cout << "Failed to open file\n";
+        return rc;
+    }
+    
+    BTreeIndex idx;
+    if ((rc = idx.open("testBTreeIndexReadForward.idx", 'w')) < 0){
+        cout << "Failed to open file\n";
+        return rc;
+    }
+    
+    string line;
+    int count = 0;
+    while(std::getline(inf, line) && count < 10) {
+        // process the line
+        if((rc = SqlEngine::parseLoadLine(line, key, value))<0) {
+            cout << "parse line failed" <<endl;
+            return rc;
+        }
+        PageId pid = 0;
+        if ((rc = idx.insert(key, rid)) < 0){
+            cout << "Failed to insert\n";
+            return rc;
+        }
+        count++;
+    }
+    
+    
+    IndexCursor cursor;
+    cursor.pid = 1;
+    cursor.eid = 1;
+    while(idx.readForward(cursor, key, rid)>=0){
+        cout << "the key here is "<< key <<endl;
+        idx.printLeafNode(cursor.pid);
+    }
+    
+    cout << "---------------------------------------------------------------------------" <<endl;
+    
+    //IndexCursor cursor;
+    cursor.pid = 1;
+    cursor.eid = 0;
+    idx.readForward(cursor, key, rid);
+    cout << "In pid: "<<cursor.pid<<" and eid: "<<cursor.eid<<", the key is:" <<key <<endl;
+    assert(key == 272);
+    std::cout << "Execution continues past the readForward Key assert\n";
+
+    cursor.pid = 1;
+    cursor.eid = 1;
+    idx.readForward(cursor, key, rid);
+    cout << "In pid: "<<cursor.pid<<" and eid: "<<cursor.eid<<", the key is:" <<key <<endl;
+    assert(key == 1578);
+    std::cout << "Execution continues past the readForward Key assert\n";
+    
+    cursor.pid = 5;
+    cursor.eid = 0;
+    idx.readForward(cursor, key, rid);
+    cout << "In pid: "<<cursor.pid<<" and eid: "<<cursor.eid<<", the key is:" <<key <<endl;
+    assert(key == 2244);
+    std::cout << "Execution continues past the readForward Key assert\n";
+    
+    cursor.pid = 5;
+    cursor.eid = 1;
+    idx.readForward(cursor, key, rid);
+    cout << "In pid: "<<cursor.pid<<" and eid: "<<cursor.eid<<", the key is:" <<key <<endl;
+    assert(key == 2342);
+    std::cout << "Execution continues past the readForward Key assert\n";
+    
+    cursor.pid = 2;
+    cursor.eid = 0;
+    idx.readForward(cursor, key, rid);
+    cout << "In pid: "<<cursor.pid<<" and eid: "<<cursor.eid<<", the key is:" <<key <<endl;
+    assert(key == 2634);
+    std::cout << "Execution continues past the readForward Key assert\n";
+    
+    cursor.pid = 2;
+    cursor.eid = 1;
+    idx.readForward(cursor, key, rid);
+    cout << "In pid: "<<cursor.pid<<" and eid: "<<cursor.eid<<", the key is:" <<key <<endl;
+    assert(key == 2965);
+    std::cout << "Execution continues past the readForward Key assert\n";
+    
+    cursor.pid = 4;
+    cursor.eid = 0;
+    idx.readForward(cursor, key, rid);
+    cout << "In pid: "<<cursor.pid<<" and eid: "<<cursor.eid<<", the key is:" <<key <<endl;
+    assert(key == 3084);
+    std::cout << "Execution continues past the readForward Key assert\n";
+    
+    cursor.pid = 4;
+    cursor.eid = 1;
+    idx.readForward(cursor, key, rid);
+    cout << "In pid: "<<cursor.pid<<" and eid: "<<cursor.eid<<", the key is:" <<key <<endl;
+    assert(key == 3229);
+    std::cout << "Execution continues past the readForward Key assert\n";
+    
+    cursor.pid = 6;
+    cursor.eid = 0;
+    idx.readForward(cursor, key, rid);
+    cout << "In pid: "<<cursor.pid<<" and eid: "<<cursor.eid<<", the key is:" <<key <<endl;
+    assert(key == 3992);
+    std::cout << "Execution continues past the readForward Key assert\n";
+    
+    cursor.pid = 6;
+    cursor.eid = 1;
+    idx.readForward(cursor, key, rid);
+    cout << "In pid: "<<cursor.pid<<" and eid: "<<cursor.eid<<", the key is:" <<key <<endl;
+    assert(key == 4589);
+    std::cout << "Execution continues past the readForward Key assert\n";
+    
+    cursor.pid = 3;
+    cursor.eid = 0;
+    idx.readForward(cursor, key, rid);
+    cout << "In pid: "<<cursor.pid<<" and eid: "<<cursor.eid<<", the key is:" <<key <<endl;
+    assert(key == 2244);
+    std::cout << "Execution continues past the readForward Key assert\n";
+    
+    cursor.pid = 3;
+    cursor.eid = 1;
+    idx.readForward(cursor, key, rid);
+    cout << "In pid: "<<cursor.pid<<" and eid: "<<cursor.eid<<", the key is:" <<key <<endl;
+    assert(key == 2634);
+    std::cout << "Execution continues past the readForward Key assert\n";
+    
+    cursor.pid = 7;
+    cursor.eid = 0;
+    idx.readForward(cursor, key, rid);
+    cout << "In pid: "<<cursor.pid<<" and eid: "<<cursor.eid<<", the key is:" <<key <<endl;
+    assert(key == 3992);
+    std::cout << "Execution continues past the readForward Key assert\n";
+    
+    idx.close();
+    inf.close();
+    return 0;
+}
+
 int main(int argc, const char * argv[]) {
-    // insert code here...
+    
     cout << "hello world!" << endl;
     for (int i = 0; i < argc; i++) {
         cout << "argv "<<i<<" is " << argv[i] <<endl;
     }
-    testLeafNode_insert1();
-    testLeafNode_insert50();
-    testNonLeafNode_insert1();
-    testNodLeafNode_insert50();
+//    testLeafNode_insert1();
+//    testLeafNode_insert50();
+//    testNonLeafNode_insert1();
+//    testNodLeafNode_insert50();
+//    
+//    testLeafNode_insertAndSplit();
+//    testNonLeafNode_insertAndSplit();
     
-    testLeafNode_insertAndSplit();
-    testNonLeafNode_insertAndSplit();
+    
+    // test index
+    //testBTreeIndexInsert1();
+    //testBTreeIndexInsert50();
+    //testBTreeIndexInsert10();
+    testBTreeIndexReadForward();
+    //testBTreeIndexLocate();
+    
     return 0;
     
 }

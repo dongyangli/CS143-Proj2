@@ -15,6 +15,7 @@ RC BTLeafNode::read(PageId pid, const PageFile& pf)
 	this->pf = pf; 
 	node_curPid = pid;
 	keyCount = 0;
+	node_nextPid = -1;
 	//if(pf.endPid() == 0) return 0;// if the end pid is zero, the file is empty.
 	
 	if((rc = pf.read(pid, buffer)) < 0)		return rc;
@@ -63,6 +64,7 @@ int BTLeafNode::getKeyCount()
  */
 RC BTLeafNode::insert(int key, const RecordId& rid)
 {	
+	RC rc;
 	if(keyCount >= MAX_KEY_COUNT){
 		return RC_NODE_FULL;
 	}
@@ -75,6 +77,8 @@ RC BTLeafNode::insert(int key, const RecordId& rid)
 	}
 	node_rid[eid] = rid;
 	node_key[eid] = key;
+	printf("Current in LeafNode insert, the curPid is %d\n", node_curPid);
+	printf("Current in LeafNode insert, the endPid is %d\n", pf.endPid());
 	return 0; 
 }
 
@@ -108,7 +112,9 @@ RC BTLeafNode::insertAndSplit(int key, const RecordId& rid,
 	sibling.setNextNodePtr(node_nextPid);
 	node_nextPid = sibling.getNodePtr();
 	keyCount = keyCount / 2;
-	//write(node_curPid, pf); // should be called outside insertAndSplit, cuz no need to write back everytime inserted
+	printf("Current in LeafNode insert, the curPid is %d\n", node_curPid);
+	printf("Current in LeafNode insert, the endPid is %d\n", pf.endPid());
+	//write(node_curPid, pf);
 	//write(sibling.getNodePtr(), pf);
 	return 0; 
 }
@@ -148,7 +154,7 @@ RC BTLeafNode::locate(int searchKey, int& eid)
  */
 RC BTLeafNode::readEntry(int eid, int& key, RecordId& rid)
 {
-	if(eid <= 0 || eid > keyCount){
+	if(eid < 0 || eid >= keyCount){
 		return RC_INVALID_CURSOR;
 	} 
 	key = node_key[eid];
@@ -192,7 +198,7 @@ RC BTLeafNode::setNextNodePtr(PageId pid)
 RC BTLeafNode::print(){
 	
 	for(int i = 0; i < keyCount; i++){
-		printf("key: %d is %d \n", i, node_key[i]);
+		printf("key %d is: %d \n", i, node_key[i]);
 	}
 	return 0;
 }
@@ -334,8 +340,7 @@ RC BTNonLeafNode::insertAndSplit(int key, PageId pid, BTNonLeafNode& sibling, in
 		sibling.insert(node_key[i], node_pid[i+1]);
 	}
 	keyCount = keyCount / 2;
-	//write(node_curPid, this->pf);
-	//write(sibling.getNodePtr(), this->pf);
+	printf("im in insertAndSplit and the node_curPid is %d\n ", node_curPid);
 	return 0; 
 }
 
@@ -376,8 +381,8 @@ RC BTNonLeafNode::locateChildPtr(int searchKey, PageId& pid)
 {
 	int pos = -1;
 	locateKeyPos(searchKey, pos);
-	if(searchKey < node_key[pos]) pos--;
-	pid = node_pid[pos+1];
+	if(pos == keyCount || pos == 0 && searchKey < node_key[pos]) pid = node_pid[pos];
+	else pid = node_pid[pos+1];
 	
 	return 0; 
 }
@@ -408,7 +413,7 @@ RC BTNonLeafNode::initializeRoot(PageId pid1, int key, PageId pid2)
 RC BTNonLeafNode::print(){
 	
 	for(int i = 0; i < keyCount; i++){
-		printf("key: %d is %d \n", i, node_key[i]);
+		printf("key %d is: %d \n", i, node_key[i]);
 	}
 	return 0;
 }

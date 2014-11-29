@@ -90,6 +90,13 @@ class BTreeIndex {
    */
   RC readForward(IndexCursor& cursor, int& key, RecordId& rid);
   
+  
+  // for test
+  RC get_rootPid(PageId& pid);
+  RC get_treeHeight(int &height);
+  RC printRootNode();
+  RC printLeafNode(PageId pid);
+  
  private:
 	 
  /*
