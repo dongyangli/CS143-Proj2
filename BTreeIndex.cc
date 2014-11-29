@@ -50,7 +50,7 @@ RC BTreeIndex::open(const string& indexname, char mode)
 	rootPid = -1;
 	treeHeight = 0;
 	if(ePid == 0){
-		printf("current ePid is %d\n", ePid);
+		//printf("current ePid is %d\n", ePid);
 		ePid++;
 		setRootId(page, rootPid);
 		setTreeHeight(page, treeHeight);
@@ -108,13 +108,13 @@ RC BTreeIndex::insert(int key, const RecordId& rid)
 	
 	printf("current treeHeight is %d\n", treeHeight);
 	if(treeHeight == 1){
-		printf("begin insert in LeafNode index\n");
-		printf("current rootPid is %d\n", rootPid);
+		//printf("begin insert in LeafNode index\n");
+		//printf("current rootPid is %d\n", rootPid);
 		insert(key, rid, rootPid, newKey, newPid);
 		//printf("current newPid is %d\n", newPid);
 	}
 	else{
-		printf("begin insert in NonLeafNode index\n");
+		//printf("begin insert in NonLeafNode index\n");
 		insert(key, rid, rootPid, 1, newKey, newPid);
 	}
 	
@@ -215,19 +215,19 @@ RC BTreeIndex::insert(int key, const RecordId& rid, PageId pid, int level, int &
 	
 	curNode.read(pid, pf);
 	curNode.locateChildPtr(key, nextPid);
-	printf("nextPid is %d \n", nextPid);
+	//printf("nextPid is %d \n", nextPid);
 	
-	printf("level is %d\n", level);
+	//printf("level is %d\n", level);
 	if(level + 1 == treeHeight){
-		printf("NonLeafNode insert into LeafNode starts\n");
+		//printf("NonLeafNode insert into LeafNode starts\n");
 		insert(key, rid, nextPid, midKey, siblingPid);
 	}
 	else{
-		printf("NonLeafNode insert into NonLeafNode starts\n");
+		//printf("NonLeafNode insert into NonLeafNode starts\n");
 		insert(key, rid, nextPid, level + 1, midKey, siblingPid);
 	}
 	
-	printf("insert from children to curNode\n");
+	//printf("insert from children to curNode\n");
 	newPid = -1;
 	if(siblingPid != -1){
 		if((level + 1 == treeHeight && curNode.getKeyCount() < BTLeafNode::MAX_KEY_COUNT) 
@@ -268,7 +268,7 @@ RC BTreeIndex::insert(int key, const RecordId& rid, PageId pid, int &newKey, int
 	}
 	newPid = -1;
 	if(curNode.getKeyCount() < BTLeafNode::MAX_KEY_COUNT){
-		printf("LeafNode insert now\n");
+		//printf("LeafNode insert now\n");
 		curNode.insert(key, rid);
 		if((rc = curNode.write(pid, pf)) < 0){
 			printf("LeafNode insert write failed\n");
@@ -276,7 +276,7 @@ RC BTreeIndex::insert(int key, const RecordId& rid, PageId pid, int &newKey, int
 		}
 	}
 	else{
-		printf("LeafNode insertAndSplit now\n");
+		//printf("LeafNode insertAndSplit now\n");
 		newPid = ePid++;
 		sibling.read(newPid, pf);
 		curNode.insertAndSplit(key, rid, sibling, newKey);

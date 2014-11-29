@@ -502,7 +502,7 @@ RC testBTreeIndexReadForward(){
     
     IndexCursor cursor;
     cursor.pid = 1;
-    cursor.eid = 1;
+    cursor.eid = 0;
     while(idx.readForward(cursor, key, rid)>=0){
         cout << "the key here is "<< key <<endl;
         idx.printLeafNode(cursor.pid);
@@ -607,6 +607,106 @@ RC testBTreeIndexReadForward(){
     return 0;
 }
 
+RC testBTreeIndexLocate(){
+    
+    RecordFile rf;   // RecordFile containing the table
+    BTreeIndex idx;
+    RecordId   rid;  // record cursor for table scanning
+    
+    RC     rc;
+    int    key;
+    string value;
+    
+    string table = "testBTreeIndexLocate";
+    std::ifstream inf("movie.del");
+    if (!inf.is_open()){
+        rc = RC_FILE_OPEN_FAILED;
+        cout << "Failed to open file\n";
+        return rc;
+    }
+    
+    if ((rc = rf.open(table + ".tbl", 'w')) < 0) {
+        fprintf(stderr, "Error: creating table %s \n", table.c_str());
+        return rc;
+    }
+    
+    if ((rc = idx.open(table + ".idx", 'w')) < 0){
+        cout << "Failed to open file\n";
+        return rc;
+    }
+    
+    string line;
+    int count = 0;
+    while(std::getline(inf, line)  && count < 10 ) {
+        // process the line
+        // process the line
+        if((rc = SqlEngine::parseLoadLine(line, key, value))<0) {
+            cout << "parse line failed" <<endl;
+            return rc;
+        }
+        //insert it into the record
+        if(rc = rf.append(key, value, rid) < 0) {
+            fprintf(stderr, "Error: inserting tuple to table %s \n", table.c_str());
+            return rc;
+        }
+        cout << "key: "<<key<<", rid.pid: "<< rid.pid << ", rid.sid: " <<rid.sid<<endl;
+        if ((rc = idx.insert(key, rid)) < 0){
+            cout << "Failed to insert into index\n";
+            return rc;
+        }
+        count++;
+    }
+    
+    
+    IndexCursor cursor;
+    cursor.pid = 1;
+    cursor.eid = 0;
+    while(idx.readForward(cursor, key, rid)>=0){
+        cout << "the key here is "<< key <<endl;
+        idx.printLeafNode(cursor.pid);
+    }
+    
+    idx.locate(272, cursor);
+    std::cout<<"cursor pid: "<<cursor.pid << ", eid: "<<cursor.eid << endl;
+    assert(cursor.pid == 1);
+    std::cout << "Execution continues past the locate pid assert\n";
+    assert(cursor.eid == 0);
+    std::cout << "Execution continues past the locate pid assert\n";
+    
+    idx.locate(2342, cursor);
+    std::cout<<"cursor pid: "<<cursor.pid << ", eid: "<<cursor.eid << endl;
+    assert(cursor.pid == 5);
+    std::cout << "Execution continues past the locate pid assert\n";
+    assert(cursor.eid == 1);
+    std::cout << "Execution continues past the locate pid assert\n";
+    
+    idx.locate(2244, cursor);
+    std::cout<<"cursor pid: "<<cursor.pid << ", eid: "<<cursor.eid << endl;
+    assert(cursor.pid == 5);
+    std::cout << "Execution continues past the locate pid assert\n";
+    assert(cursor.eid == 0);
+    std::cout << "Execution continues past the locate pid assert\n";
+    
+    idx.locate(2634, cursor);
+    std::cout<<"cursor pid: "<<cursor.pid << ", eid: "<<cursor.eid << endl;
+    assert(cursor.pid == 2);
+    std::cout << "Execution continues past the locate pid assert\n";
+    assert(cursor.eid == 0);
+    std::cout << "Execution continues past the locate pid assert\n";
+    
+    idx.locate(4589, cursor);
+    std::cout<<"cursor pid: "<<cursor.pid << ", eid: "<<cursor.eid << endl;
+    assert(cursor.pid == 6);
+    std::cout << "Execution continues past the locate pid assert\n";
+    assert(cursor.eid == 1);
+    std::cout << "Execution continues past the locate pid assert\n";
+    
+    rf.close();
+    inf.close();
+    idx.close();
+    return 0;
+}
+
 int main(int argc, const char * argv[]) {
     
     cout << "hello world!" << endl;
@@ -627,7 +727,7 @@ int main(int argc, const char * argv[]) {
     //testBTreeIndexInsert50();
     //testBTreeIndexInsert10();
     testBTreeIndexReadForward();
-    //testBTreeIndexLocate();
+    testBTreeIndexLocate();
     
     return 0;
     

@@ -16,11 +16,10 @@ RC BTLeafNode::read(PageId pid, const PageFile& pf)
 	node_curPid = pid;
 	keyCount = 0;
 	node_nextPid = -1;
-	//if(pf.endPid() == 0) return 0;// if the end pid is zero, the file is empty.
 	
 	if((rc = pf.read(pid, buffer)) < 0)		return rc;
 	memcpy(&keyCount, buffer, sizeof(int));
-	printf("I'm in read, the keyCount here is %d\n", keyCount);
+	//printf("I'm in read, the keyCount here is %d\n", keyCount);
 	memcpy(node_key, buffer + sizeof(int), sizeof(int) * MAX_KEY_COUNT);
 	memcpy(node_rid, buffer + sizeof(int) + sizeof(int) * MAX_KEY_COUNT, sizeof(RecordId) * MAX_RECORDID_COUNT);
 	memcpy(&node_nextPid, buffer + sizeof(int) + (sizeof(int) * MAX_KEY_COUNT + sizeof(RecordId) * MAX_RECORDID_COUNT), sizeof(int));
@@ -37,7 +36,7 @@ RC BTLeafNode::write(PageId pid, PageFile& pf)
 {
 	RC rc = 0;
 	if(pid < 0)	return RC_INVALID_PID;
-	printf("I'm in write, the keyCount here is %d\n", keyCount);
+	//printf("I'm in write, the keyCount here is %d\n", keyCount);
 	memcpy(buffer, &keyCount, sizeof(keyCount));
 	memcpy(buffer + sizeof(int), node_key, sizeof(int) * MAX_KEY_COUNT);
 	memcpy(buffer + sizeof(int) + sizeof(int) * MAX_KEY_COUNT, node_rid, sizeof(RecordId) * MAX_RECORDID_COUNT);
@@ -77,8 +76,8 @@ RC BTLeafNode::insert(int key, const RecordId& rid)
 	}
 	node_rid[eid] = rid;
 	node_key[eid] = key;
-	printf("Current in LeafNode insert, the curPid is %d\n", node_curPid);
-	printf("Current in LeafNode insert, the endPid is %d\n", pf.endPid());
+	//printf("Current in LeafNode insert, the curPid is %d\n", node_curPid);
+	//printf("Current in LeafNode insert, the endPid is %d\n", pf.endPid());
 	return 0; 
 }
 
@@ -112,10 +111,8 @@ RC BTLeafNode::insertAndSplit(int key, const RecordId& rid,
 	sibling.setNextNodePtr(node_nextPid);
 	node_nextPid = sibling.getNodePtr();
 	keyCount = keyCount / 2;
-	printf("Current in LeafNode insert, the curPid is %d\n", node_curPid);
-	printf("Current in LeafNode insert, the endPid is %d\n", pf.endPid());
-	//write(node_curPid, pf);
-	//write(sibling.getNodePtr(), pf);
+	//printf("Current in LeafNode insert, the curPid is %d\n", node_curPid);
+	//printf("Current in LeafNode insert, the endPid is %d\n", pf.endPid());
 	return 0; 
 }
 
@@ -198,7 +195,7 @@ RC BTLeafNode::setNextNodePtr(PageId pid)
 RC BTLeafNode::print(){
 	
 	for(int i = 0; i < keyCount; i++){
-		printf("key %d is: %d \n", i, node_key[i]);
+		printf("key %d is: %d, pid is %d, sid is %d \n", i, node_key[i], node_rid[i].pid, node_rid[i].sid);
 	}
 	return 0;
 }
@@ -340,7 +337,7 @@ RC BTNonLeafNode::insertAndSplit(int key, PageId pid, BTNonLeafNode& sibling, in
 		sibling.insert(node_key[i], node_pid[i+1]);
 	}
 	keyCount = keyCount / 2;
-	printf("im in insertAndSplit and the node_curPid is %d\n ", node_curPid);
+	//printf("im in insertAndSplit and the node_curPid is %d\n ", node_curPid);
 	return 0; 
 }
 
@@ -381,9 +378,10 @@ RC BTNonLeafNode::locateChildPtr(int searchKey, PageId& pid)
 {
 	int pos = -1;
 	locateKeyPos(searchKey, pos);
-	if(pos == keyCount || pos == 0 && searchKey < node_key[pos]) pid = node_pid[pos];
-	else pid = node_pid[pos+1];
-	
+	// cuz it's leftmost binary search, all elements to the left of pos is 
+	// smaller, but not sure if node_key[pos] == searchKey
+	if(pos < keyCount && searchKey >= node_key[pos]) pid = node_pid[pos+1];
+	else pid = node_pid[pos];
 	return 0; 
 }
 
@@ -413,7 +411,7 @@ RC BTNonLeafNode::initializeRoot(PageId pid1, int key, PageId pid2)
 RC BTNonLeafNode::print(){
 	
 	for(int i = 0; i < keyCount; i++){
-		printf("key %d is: %d \n", i, node_key[i]);
+		printf("key %d is: %d, pid is %d \n", i, node_key[i], node_pid[i+1]);
 	}
 	return 0;
 }
