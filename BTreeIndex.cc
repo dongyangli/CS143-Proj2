@@ -106,7 +106,7 @@ RC BTreeIndex::insert(int key, const RecordId& rid)
 		return 0;
 	}
 	
-	printf("current treeHeight is %d\n", treeHeight);
+	//printf("current treeHeight is %d\n", treeHeight);
 	if(treeHeight == 1){
 		//printf("begin insert in LeafNode index\n");
 		//printf("current rootPid is %d\n", rootPid);
@@ -120,7 +120,7 @@ RC BTreeIndex::insert(int key, const RecordId& rid)
 	
 	///new root
 	if(newPid != -1){
-		printf("New Root generated...\n");
+		//printf("New Root generated...\n");
 		BTNonLeafNode newRoot;
 		newRoot.read(ePid++, pf);
 		newRoot.initializeRoot(rootPid, newKey, newPid);

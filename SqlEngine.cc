@@ -12,6 +12,7 @@
 #include <fstream>
 #include "Bruinbase.h"
 #include "SqlEngine.h"
+#include "BTreeIndex.h"
 
 using namespace std;
 
@@ -132,15 +133,21 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
 {
     RecordFile rf;   // RecordFile containing the table
     RecordId   rid;  // record cursor for table scanning
+	BTreeIndex idx;  // index file for retrieving later
 
     RC     rc;
     int    key;     
     string value;
 	
     if ((rc = rf.open(table + ".tbl", 'w')) < 0) {
-      fprintf(stderr, "Error: creating table %s \n", table.c_str());
-      return rc;
+		fprintf(stderr, "Error: creating table %s \n", table.c_str());
+		return rc;
     }
+	
+	if (index && (rc = idx.open(table + ".idx", 'w')) < 0){
+		fprintf(stderr, "Error: creating table %s index \n", table.c_str());   
+		return rc;
+	}
 	
 	std::ifstream inf(loadfile.c_str());
 	if (!inf.is_open()){
@@ -157,10 +164,14 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
 			fprintf(stderr, "Error: inserting tuple to table %s \n", table.c_str());
 			return rc;
 		}
-		
+		//insert it into index file, if index is true
+		if (index && (rc = idx.insert(key, rid)) < 0){
+			fprintf(stderr, "Error: inserting key to table %s index \n", table.c_str());
+			return rc;
+		}
 	}
 	
-	//if(index) ...
+	if(index) idx.close();
 	rf.close();
 	inf.close();
 	return 0;
