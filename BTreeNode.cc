@@ -125,18 +125,19 @@ RC BTLeafNode::insertAndSplit(int key, const RecordId& rid,
  * @return 0 if successful. Return an error code if there is an error.
  */
 RC BTLeafNode::locate(int searchKey, int& eid)
-{ 
-	int start = 0, end = keyCount;
-	while(start < end){
-		int mid = start + (end - start) / 2;
-		if(node_key[mid] <= searchKey){
+{ 	
+	//leftmost binary search
+	int start = 0, end = keyCount - 1;
+	while(start <= end) {
+		int mid = (end + start)/2;
+		if(node_key[mid] >= searchKey){
+			end = mid - 1;
+		} else {
 			start = mid + 1;
 		}
 	}
-	eid = end;
-	if(node_key[end] != searchKey){
-		return RC_NO_SUCH_RECORD;
-	}
+	eid = start;
+	
 	return 0; 
 	
 }
@@ -353,7 +354,7 @@ RC BTNonLeafNode::locateKeyPos(int searchKey, int& pos)
 	//leftmost binary search
 	int start = 0, end = keyCount - 1;
 	while(start <= end) {
-		int mid = start + (end - start) / 2;
+		int mid = (end + start)/2;
 		if(node_key[mid] >= searchKey){
 			end = mid - 1;
 		} else {

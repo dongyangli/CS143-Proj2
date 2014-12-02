@@ -230,7 +230,8 @@ RC BTreeIndex::insert(int key, const RecordId& rid, PageId pid, int level, int &
 	//printf("insert from children to curNode\n");
 	newPid = -1;
 	if(siblingPid != -1){
-		if(curNode.getKeyCount() < BTNonLeafNode::MAX_KEY_COUNT){
+		if((level + 1 == treeHeight && curNode.getKeyCount() < BTLeafNode::MAX_KEY_COUNT) 
+		|| (level + 1 < treeHeight && curNode.getKeyCount() < BTNonLeafNode::MAX_KEY_COUNT)){
 			curNode.insert(midKey, siblingPid);
 			if((rc = curNode.write(pid, pf)) < 0){
 				printf("NonLeafNode insert write failed\n");
