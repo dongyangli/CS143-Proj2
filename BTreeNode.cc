@@ -138,6 +138,9 @@ RC BTLeafNode::locate(int searchKey, int& eid)
 	}
 	eid = start;
 	
+	if(eid >= keyCount || node_key[eid] != searchKey){
+		return RC_NO_SUCH_RECORD;
+	}
 	return 0; 
 	
 }
@@ -214,7 +217,15 @@ RC BTLeafNode::getRecordIdsPtr(RecordId** recordIds){
 	return 0;
 }
 
-
+/**
+ * Return the first eid. To be used in BTreeIndex
+ * @pid the first PageId stored in the node 
+ */
+RC BTLeafNode::getFirstEid( int eid){
+	
+	eid = 0;
+	return 0;
+}
 
 
 // ------------------------------------------------------------------------------------------------------
@@ -362,7 +373,9 @@ RC BTNonLeafNode::locateKeyPos(int searchKey, int& pos)
 		}
 	}
 	pos = start;
-	
+	if(pos >= keyCount || node_key[pos] != searchKey){
+		return RC_NO_SUCH_RECORD;
+	}
 	return 0; 
 }
 
@@ -429,5 +442,16 @@ RC BTNonLeafNode::getPageIdsPtr(PageId** pageIds){
 	memcpy(*pageIds, node_pid, sizeof(PageId)*(MAX_PAGEID_COUNT+1));
 	return 0;
 }
+
+/**
+ * Return the first pid. To be used in BTreeIndex
+ * @pid the first PageId stored in the node 
+ */
+RC BTNonLeafNode::getFirstPid( PageId& pid ){
+	pid = node_pid[0];
+	return 0;
+}
+
+
 
 
