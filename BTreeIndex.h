@@ -90,7 +90,7 @@ class BTreeIndex {
    */
   RC readForward(IndexCursor& cursor, int& key, RecordId& rid);
   
-  RC locateFirstEntry(IndexCursor& cursor);
+  
   // for test
   RC get_rootPid(PageId& pid);
   RC get_treeHeight(int &height);

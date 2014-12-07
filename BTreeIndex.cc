@@ -166,7 +166,7 @@ RC BTreeIndex::locate(int searchKey, IndexCursor& cursor)
 	}
 	BTLeafNode curLeafNode;
 	curLeafNode.read(curPid, pf);
-	curLeafNode.locate(searchKey, cursor.eid);// need to check if the eid is >= keyCount, cuz that means didnt find And if eid == 0, it might not be the element we want // it might be RC_NO_SUCH_RECORD
+	curLeafNode.locate(searchKey, cursor.eid);
 	cursor.pid = curPid;
     return 0;
 }
@@ -186,7 +186,7 @@ RC BTreeIndex::readForward(IndexCursor& cursor, int& key, RecordId& rid)
 	if((rc = curNode.read(cursor.pid, pf) ) < 0) return rc;
 	if((rc = curNode.readEntry(cursor.eid, key, rid) ) < 0) return rc;
 	if(cursor.eid == curNode.getKeyCount()-1){
-		cursor.pid = curNode.getNextNodePtr();// -1 if reach end
+		cursor.pid = curNode.getNextNodePtr();
 		//printf("I am node %d, and my next node is %d \n", curNode.getNodePtr(), curNode.getNextNodePtr());
 		cursor.eid = 0;
 	}
@@ -230,7 +230,8 @@ RC BTreeIndex::insert(int key, const RecordId& rid, PageId pid, int level, int &
 	//printf("insert from children to curNode\n");
 	newPid = -1;
 	if(siblingPid != -1){
-		if((level + 1 < treeHeight && curNode.getKeyCount() < BTNonLeafNode::MAX_KEY_COUNT)){
+		if((level + 1 == treeHeight && curNode.getKeyCount() < BTLeafNode::MAX_KEY_COUNT) 
+		|| (level + 1 < treeHeight && curNode.getKeyCount() < BTNonLeafNode::MAX_KEY_COUNT)){
 			curNode.insert(midKey, siblingPid);
 			if((rc = curNode.write(pid, pf)) < 0){
 				printf("NonLeafNode insert write failed\n");
@@ -324,28 +325,6 @@ RC BTreeIndex::printLeafNode(PageId pid){
 	BTLeafNode rootNode;
 	rootNode.read(pid, pf);
 	rootNode.print();
-	
-	return 0;
-}
-
-
-RC BTreeIndex::locateFirstEntry(IndexCursor& cursor){
-	
-	RC rc;
-	int level = 1;
-	PageId curPid = rootPid;
-	while(level < treeHeight){
-		BTNonLeafNode curNode;
-		curNode.read(curPid, pf);
-		// --- curNode.locateChildPtr(searchKey, curPid);
-		curNode.getFirstPid(curPid);
-		level++;
-	}
-	BTLeafNode curLeafNode;
-	curLeafNode.read(curPid, pf);
-	// --- curLeafNode.locate(searchKey, cursor.eid);// need to check if the eid is >= keyCount, cuz that means didnt find And if eid == 0, it might not be the element we want // it might be RC_NO_SUCH_RECORD
-	curLeafNode.getFirstEid(cursor.eid);
-	cursor.pid = curPid;
 	
 	return 0;
 }
