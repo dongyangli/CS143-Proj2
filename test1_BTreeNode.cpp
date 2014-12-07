@@ -726,7 +726,7 @@ int main(int argc, const char * argv[]) {
     //testBTreeIndexInsert1();
     //testBTreeIndexInsert50();
     //testBTreeIndexInsert10();
-    testBTreeIndexReadForward();
+    //testBTreeIndexReadForward();
     testBTreeIndexLocate();
     
     return 0;

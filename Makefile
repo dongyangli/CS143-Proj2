@@ -1,7 +1,7 @@
-SRC = main.cc SqlParser.tab.c lex.sql.c SqlEngine.cc BTreeIndex.cc BTreeNode.cc RecordFile.cc PageFile.cc 
+SRC = test1_BTreeNode.cpp SqlParser.tab.c lex.sql.c SqlEngine.cc BTreeIndex.cc BTreeNode.cc RecordFile.cc PageFile.cc 
 HDR = Bruinbase.h PageFile.h SqlEngine.h BTreeIndex.h BTreeNode.h RecordFile.h SqlParser.tab.h
 
-bruinbase: $(SRC) $(HDR)
+test1_BTreeNode: $(SRC) $(HDR)
 	g++ -ggdb -o $@ $(SRC)
 
 lex.sql.c: SqlParser.l
@@ -11,4 +11,4 @@ SqlParser.tab.c: SqlParser.y
 	bison -d -psql $<
 
 clean:
-	rm -f bruinbase bruinbase.exe *.o *~ lex.sql.c SqlParser.tab.c SqlParser.tab.h 
+	rm -f test1_BTreeNode test1_BTreeNode.exe *.o *~ lex.sql.c SqlParser.tab.c SqlParser.tab.h 

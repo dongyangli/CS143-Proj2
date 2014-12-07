@@ -138,9 +138,9 @@ RC BTLeafNode::locate(int searchKey, int& eid)
 	}
 	eid = start;
 	
-	if(eid >= keyCount || node_key[eid] != searchKey){
+	/*if(eid >= keyCount || node_key[eid] != searchKey){
 		return RC_NO_SUCH_RECORD;
-	}
+	}*/
 	return 0; 
 	
 }
@@ -221,7 +221,7 @@ RC BTLeafNode::getRecordIdsPtr(RecordId** recordIds){
  * Return the first eid. To be used in BTreeIndex
  * @pid the first PageId stored in the node 
  */
-RC BTLeafNode::getFirstEid( int eid){
+RC BTLeafNode::getFirstEid( int& eid){
 	
 	eid = 0;
 	return 0;
@@ -395,6 +395,7 @@ RC BTNonLeafNode::locateChildPtr(int searchKey, PageId& pid)
 	// smaller, but not sure if node_key[pos] == searchKey
 	if(pos < keyCount && searchKey >= node_key[pos]) pid = node_pid[pos+1];
 	else pid = node_pid[pos];
+	if(pid == -1) printf("locateChildPtr error, pos is %d\n", pos);
 	return 0; 
 }
 

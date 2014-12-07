@@ -18,8 +18,8 @@
 class BTLeafNode {
   public:
 	  
-  	static const int MAX_KEY_COUNT = 84;  //84 // used 3 for testing index
-  	static const int MAX_RECORDID_COUNT = 84; //84 // used 3 for testing index
+  	static const int MAX_KEY_COUNT = 3;  //84 // used 3 for testing index
+  	static const int MAX_RECORDID_COUNT = 3; //84 // used 3 for testing index
 	  
    /**
     * Insert the (key, rid) pair to the node.
@@ -92,7 +92,7 @@ class BTLeafNode {
     * Return the first pid. To be used in BTreeIndex
     * @pid the first PageId stored in the node 
     */
-	RC getFirstEid( int eid);
+	RC getFirstEid( int& eid);
  
    /**
     * Read the content of the node from the page pid in the PageFile pf.
@@ -136,8 +136,8 @@ class BTLeafNode {
 class BTNonLeafNode {
   public:
 	  
-	static const int MAX_KEY_COUNT = 127;  //127 // used 3 for testing index
-	static const int MAX_PAGEID_COUNT = 128;  //128 // used 4 for testing index
+	static const int MAX_KEY_COUNT = 3;  //127 // used 3 for testing index
+	static const int MAX_PAGEID_COUNT = 4;  //128 // used 4 for testing index
    /**
     * Insert a (key, pid) pair to the node.
     * Remember that all keys inside a B+tree node should be kept sorted.

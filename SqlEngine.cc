@@ -65,6 +65,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
   
   // check if need index
   // code here ...
+  if(attr == 4) printf("now it's count(*) \n");
   if( keyCond.empty() && attr != 4) { // regardless of the attr, if count(*), use
 		hasIndex = false;
   }
@@ -77,30 +78,33 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
   rid.pid = rid.sid = 0;
   count = 0;
   if ( hasIndex ){ // has index file
-	  switch (keyCond[0].comp) {
-		  case SelCond::EQ:
-		  // assumming no duplicate, can we extract the specific tuple and return directly?
-		  hasKeyEqCond = true;
-		  case SelCond::GE:
-		  case SelCond::GT:
-		  rc = idx.locate(atoi(keyCond[0].value), cursor); 
-		  break;
-		  //case SelCond::NE:
-		  case SelCond::LT:
-		  case SelCond::LE:
-		  default:
+	  if(!keyCond.empty()){
+		  switch (keyCond[0].comp) {
+			  case SelCond::EQ:
+			  // assumming no duplicate, can we extract the specific tuple and return directly?
+			  hasKeyEqCond = true;
+			  case SelCond::GE:
+			  case SelCond::GT:
+			  rc = idx.locate(atoi(keyCond[0].value), cursor); 
+			  if(rc < 0) printf("idx.locate error \n");
+			  break;
+			  //case SelCond::NE:
+			  case SelCond::LT:
+			  case SelCond::LE:
+			  default:
+			  rc = idx.locateFirstEntry(cursor);
+			  if(rc < 0)  printf("idx.locateFirstEntry error \n");
+			  break;
+		  }
+	  } else{
 		  rc = idx.locateFirstEntry(cursor);
-		  break;
+		  if(rc < 0) printf("idx.locateFirstEntry error \n");
 	  }
-	  
 	  if(rc < 0 || (rc = idx.readForward(cursor, key, rid)) < 0) {
 		  fprintf(stderr, "Error while reading from index for table %s\n", table.c_str());
 		  goto exit_select;
 	  }
   } 
-  
-  //if(hasKeyEqCond){ if attr = 2 or 4, otherCond.empty(), return the key directly, else load the value }
-  
   
   while(!finishScan ){
 	  // match keyConds
