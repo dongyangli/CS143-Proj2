@@ -42,90 +42,124 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
   int    key;     
   string value;
   int    count;
-  int    diff;
+  
+  BTreeIndex idx;
+  IndexCursor cursor;
+  
+  bool hasIndex = true;
+  bool finishScan = false;
+  bool hasKeyEqCond = false;
+  
+  vector<SelCond> keyCond;// to make it simple, we wont consider nq condition as keyCond
+  vector<SelCond> otherCond;
 
   // open the table file
   if ((rc = rf.open(table + ".tbl", 'r')) < 0) {
     fprintf(stderr, "Error: table %s does not exist\n", table.c_str());
     return rc;
   }
-
-  // scan the table file from the beginning
+  
+  // process SelConds first
+  // code here ...
+  parseSelConds(cond, keyCond, otherCond);
+  
+  // check if need index
+  // code here ...
+  if( keyCond.empty() && attr != 4) { // regardless of the attr, if count(*), use
+		hasIndex = false;
+  }
+  
+  // open the table index
+  if(hasIndex && (rc = idx.open(table + ".idx", 'r')) < 0) {
+	  hasIndex = false;
+  }
+  
   rid.pid = rid.sid = 0;
   count = 0;
-  while (rid < rf.endRid()) {
-    // read the tuple
-    if ((rc = rf.read(rid, key, value)) < 0) {
-      fprintf(stderr, "Error: while reading a tuple from table %s\n", table.c_str());
-      goto exit_select;
-    }
-
-    // check the conditions on the tuple
-    for (unsigned i = 0; i < cond.size(); i++) {
-      // compute the difference between the tuple value and the condition value
-      switch (cond[i].attr) {
-      case 1:
-	diff = key - atoi(cond[i].value);
-	break;
-      case 2:
-	diff = strcmp(value.c_str(), cond[i].value);
-	break;
-      }
-
-      // skip the tuple if any condition is not met
-      switch (cond[i].comp) {
-      case SelCond::EQ:
-	if (diff != 0) goto next_tuple;
-	break;
-      case SelCond::NE:
-	if (diff == 0) goto next_tuple;
-	break;
-      case SelCond::GT:
-	if (diff <= 0) goto next_tuple;
-	break;
-      case SelCond::LT:
-	if (diff >= 0) goto next_tuple;
-	break;
-      case SelCond::GE:
-	if (diff < 0) goto next_tuple;
-	break;
-      case SelCond::LE:
-	if (diff > 0) goto next_tuple;
-	break;
-      }
-    }
-
-    // the condition is met for the tuple. 
-    // increase matching tuple counter
-    count++;
-
-    // print the tuple 
-    switch (attr) {
-    case 1:  // SELECT key
-      fprintf(stdout, "%d\n", key);
-      break;
-    case 2:  // SELECT value
-      fprintf(stdout, "%s\n", value.c_str());
-      break;
-    case 3:  // SELECT *
-      fprintf(stdout, "%d '%s'\n", key, value.c_str());
-      break;
-    }
-
-    // move to the next tuple
-    next_tuple:
-    ++rid;
-  }
-
+  if ( hasIndex ){ // has index file
+	  if(!keyCond.empty()){
+		  switch (keyCond[0].comp) {
+			  case SelCond::EQ:
+			  // assumming no duplicate, can we extract the specific tuple and return directly?
+			  hasKeyEqCond = true;
+			  case SelCond::GE:
+			  case SelCond::GT:
+			  rc = idx.locate(atoi(keyCond[0].value), cursor); 
+			  break;
+			  //case SelCond::NE:
+			  case SelCond::LT:
+			  case SelCond::LE:
+			  default:
+			  rc = idx.locateFirstEntry(cursor);
+			  break;
+		  }
+	  } else {
+		  rc = idx.locateFirstEntry(cursor);
+	  }
+	  
+	  if(rc < 0 || (rc = idx.readForward(cursor, key, rid)) < 0) {
+		  fprintf(stderr, "Error while reading from index for table %s\n", table.c_str());
+		  goto exit_select;
+	  }
+  } 
+  
+  while(!finishScan ){
+	  // match keyConds
+	  if(hasIndex && !matchSelCond(keyCond, key, value)) goto next_tuple;
+	  	
+	  // match valueConds if necessary
+	  // read from the table first
+	  if(!hasIndex || !otherCond.empty() || (hasIndex && (attr == 2 || attr == 3)) ){
+		  if((rc = rf.read(rid, key, value)) < 0){
+			  fprintf(stderr, "Error: while reading a tuple from table %s\n", table.c_str());
+			  goto exit_select;
+		  }
+	  }
+	  
+	  // check valueConds
+	  if(hasIndex && !matchSelCond(otherCond, key, value)) goto next_tuple;
+	  
+	  // for table scan
+	  if(!hasIndex && !matchSelCond(cond, key, value)) goto next_tuple;
+	  
+	  // once the all conditions are met
+	  // increasing matching tuple counter
+	  count++;
+	  switch (attr) {
+		  case 1:  // SELECT key
+		  fprintf(stdout, "%d\n", key);
+		  break;
+	      case 2:  // SELECT value
+		  fprintf(stdout, "%s\n", value.c_str());
+		  break;
+	      case 3:  // SELECT *
+		  fprintf(stdout, "%d '%s'\n", key, value.c_str());
+		  break;
+	  }
+	  
+	  next_tuple:
+	  
+	  if(hasIndex) {
+		  if(hasKeyEqCond) break;// no need to ckech next if assuming no duplicates
+		  if((rc = idx.readForward(cursor, key, rid)) < 0) break;		  
+	  } else {
+		  ++rid;
+		  finishScan = (rid >= rf.endRid());
+		  //printf("scan next...\n");
+	  }
+	  
+  } // end while
+  
   // print matching tuple count if "select count(*)"
-  if (attr == 4) {
-    fprintf(stdout, "%d\n", count);
+  if(attr == 4){
+	  fprintf(stdout, "%d\n", count);
   }
   rc = 0;
 
   // close the table file and return
   exit_select:
   rf.close();
+  idx.close();
   return rc;
 }
 
@@ -217,3 +251,68 @@ RC SqlEngine::parseLoadLine(const string& line, int& key, string& value)
 
     return 0;
 }
+
+RC SqlEngine::parseSelConds(const vector<SelCond>& cond, vector<SelCond>& keyCond, vector<SelCond>& valueCond){
+	
+	keyCond.clear();
+	valueCond.clear();
+	
+	for(int i = 0; i < cond.size(); i++) {
+		if(cond[i].attr == 1 && cond[i].comp != SelCond::NE){
+			if(cond[i].comp == SelCond::EQ || cond[i].comp == SelCond::GT || cond[i].comp == SelCond::GE)
+				keyCond.insert(keyCond.begin(), cond[i]);
+			else 
+				keyCond.push_back(cond[i]);
+		}
+			
+		else
+			valueCond.push_back(cond[i]);
+	}
+	
+	return 0;
+}
+
+bool SqlEngine::matchSelCond(const vector<SelCond>& cond, int key, string value){
+	
+	int diff;
+	// check the conditions on the tuple
+    for (unsigned i = 0; i < cond.size(); i++) {
+      // compute the difference between the tuple value and the condition value
+      switch (cond[i].attr) {
+      case 1:
+	diff = key - atoi(cond[i].value);
+	break;
+      case 2:
+	diff = strcmp(value.c_str(), cond[i].value);
+	break;
+      }
+
+      // skip the tuple if any condition is not met
+      switch (cond[i].comp) {
+      case SelCond::EQ:
+	if (diff != 0) return false;
+	break;
+      case SelCond::NE:
+	if (diff == 0) return false;
+	break;
+      case SelCond::GT:
+	if (diff <= 0) return false;
+	break;
+      case SelCond::LT:
+	if (diff >= 0) return false;
+	break;
+      case SelCond::GE:
+	if (diff < 0) return false;
+	break;
+      case SelCond::LE:
+	if (diff > 0) return false;
+	break;
+      }
+    }
+	
+	return true;
+}
+
+
+
+

@@ -214,7 +214,15 @@ RC BTLeafNode::getRecordIdsPtr(RecordId** recordIds){
 	return 0;
 }
 
-
+/**
+ * Return the first eid. To be used in BTreeIndex
+ * @pid the first PageId stored in the node 
+ */
+RC BTLeafNode::getFirstEid( int& eid){
+	
+	eid = 0;
+	return 0;
+}
 
 
 // ------------------------------------------------------------------------------------------------------
@@ -430,4 +438,12 @@ RC BTNonLeafNode::getPageIdsPtr(PageId** pageIds){
 	return 0;
 }
 
+/**
+ * Return the first pid. To be used in BTreeIndex
+ * @pid the first PageId stored in the node 
+ */
+RC BTNonLeafNode::getFirstPid( PageId& pid ){
+	pid = node_pid[0];
+	return 0;
+}
 

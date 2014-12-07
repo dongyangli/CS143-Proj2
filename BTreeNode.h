@@ -87,6 +87,12 @@ class BTLeafNode {
     * @return the number of keys in the node
     */
     int getKeyCount();
+	
+   /**
+    * Return the first pid. To be used in BTreeIndex
+    * @pid the first PageId stored in the node 
+    */
+	RC getFirstEid( int& eid);
  
    /**
     * Read the content of the node from the page pid in the PageFile pf.
@@ -185,7 +191,13 @@ class BTNonLeafNode {
     * @return the PageId of the current node 
     */
 	PageId getNodePtr();
-
+	
+   /**
+    * Return the first pid. To be used in BTreeIndex
+    * @pid the first PageId stored in the node 
+    */
+	RC getFirstPid( PageId& pid );
+	
    /**
     * Read the content of the node from the page pid in the PageFile pf.
     * @param pid[IN] the PageId to read
