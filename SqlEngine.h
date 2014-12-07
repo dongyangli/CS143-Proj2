@@ -70,7 +70,10 @@ class SqlEngine {
   
   
   
-  static RC parseSelConds(const std::vector<SelCond>& cond, std::vector<SelCond>& keyCond, std::vector<SelCond>& valueCond);
+  static RC parseSelConds(const std::vector<SelCond>& cond, std::vector<SelCond>& keyCond, std::vector<SelCond>& valueCond, bool& hasKeyEqCond, bool& lowerBoundKey, bool& upperBoundKey);
+  
+  static RC getLowerBoundKey(std::vector<SelCond> cond, int& lowerBoundKey);
+  static RC getUpperBoundKey(std::vector<SelCond> cond, int& upperBoundKey);
   
   static bool matchSelCond(const std::vector<SelCond>& cond, int key, std::string value);
   

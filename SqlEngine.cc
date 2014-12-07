@@ -48,7 +48,9 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
   
   bool hasIndex = true;
   bool finishScan = false;
-  bool hasKeyEqCond = false;
+  bool hasEqualBoundKey = false;
+  bool hasLowerBoundKey = false, hasUpperBoundKey = false;
+  int lowerBoundKey = -1, upperBoundKey = -1;
   
   vector<SelCond> keyCond;// to make it simple, we wont consider nq condition as keyCond
   vector<SelCond> otherCond;
@@ -61,7 +63,11 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
   
   // process SelConds first
   // code here ...
-  parseSelConds(cond, keyCond, otherCond);
+  parseSelConds(cond, keyCond, otherCond, hasEqualBoundKey, hasLowerBoundKey, hasUpperBoundKey);
+  if(hasLowerBoundKey) getLowerBoundKey(keyCond, lowerBoundKey);//include eqKey
+  if(hasUpperBoundKey) getUpperBoundKey(keyCond, upperBoundKey);
+  //printf("lowerBoundKey is %d\n", lowerBoundKey);
+  //printf("upperBoundKey is %d\n", upperBoundKey);
   
   // check if need index
   // code here ...
@@ -77,22 +83,8 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
   rid.pid = rid.sid = 0;
   count = 0;
   if ( hasIndex ){ // has index file
-	  if(!keyCond.empty()){
-		  switch (keyCond[0].comp) {
-			  case SelCond::EQ:
-			  // assumming no duplicate, can we extract the specific tuple and return directly?
-			  hasKeyEqCond = true;
-			  case SelCond::GE:
-			  case SelCond::GT:
-			  rc = idx.locate(atoi(keyCond[0].value), cursor); 
-			  break;
-			  //case SelCond::NE:
-			  case SelCond::LT:
-			  case SelCond::LE:
-			  default:
-			  rc = idx.locateFirstEntry(cursor);
-			  break;
-		  }
+	  if( hasLowerBoundKey ){
+		  rc = idx.locate(lowerBoundKey, cursor); 
 	  } else {
 		  rc = idx.locateFirstEntry(cursor);
 	  }
@@ -140,8 +132,9 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
 	  next_tuple:
 	  
 	  if(hasIndex) {
-		  if(hasKeyEqCond) break;// no need to ckech next if assuming no duplicates
-		  if((rc = idx.readForward(cursor, key, rid)) < 0) break;		  
+		  if(hasEqualBoundKey) break;// no need to ckech next if assuming no duplicates
+		  if((rc = idx.readForward(cursor, key, rid)) < 0) break;	
+		  if(hasUpperBoundKey && key > upperBoundKey) break;
 	  } else {
 		  ++rid;
 		  finishScan = (rid >= rf.endRid());
@@ -252,25 +245,64 @@ RC SqlEngine::parseLoadLine(const string& line, int& key, string& value)
     return 0;
 }
 
-RC SqlEngine::parseSelConds(const vector<SelCond>& cond, vector<SelCond>& keyCond, vector<SelCond>& valueCond){
+RC SqlEngine::parseSelConds(const vector<SelCond>& cond, vector<SelCond>& keyCond, vector<SelCond>& valueCond, bool& hasEqualBoundKey, bool& hasLowerBoundKey, bool& hasUpperBoundKey){
 	
 	keyCond.clear();
 	valueCond.clear();
 	
 	for(int i = 0; i < cond.size(); i++) {
 		if(cond[i].attr == 1 && cond[i].comp != SelCond::NE){
-			if(cond[i].comp == SelCond::EQ || cond[i].comp == SelCond::GT || cond[i].comp == SelCond::GE)
-				keyCond.insert(keyCond.begin(), cond[i]);
-			else 
-				keyCond.push_back(cond[i]);
+			switch (cond[i].comp) {
+				case SelCond::EQ:
+				// assumming no duplicate, can we extract the specific tuple and return directly?
+				hasEqualBoundKey = true;
+				case SelCond::GE:
+				case SelCond::GT:
+				hasLowerBoundKey = true;
+				break;
+				//case SelCond::NE:
+				case SelCond::LT:
+				case SelCond::LE:
+				default:
+				hasUpperBoundKey = true;
+				break;
+			}
+			keyCond.push_back(cond[i]);	
+		} else{
+			valueCond.push_back(cond[i]);
 		}
 			
-		else
-			valueCond.push_back(cond[i]);
 	}
 	
 	return 0;
 }
+
+/*find the largest lowerBound*/
+RC SqlEngine::getLowerBoundKey(vector<SelCond> cond, int& lowerBoundKey){
+	lowerBoundKey = -1;
+	for(int i = 0; i < cond.size(); i++) {
+		if(cond[i].attr == 1 && cond[i].comp == SelCond::GE || cond[i].comp == SelCond::GT || cond[i].comp == SelCond::EQ){
+			lowerBoundKey = max(lowerBoundKey, atoi(cond[i].value));		
+		}
+	}
+	
+	return 0;
+}
+
+/*find the smallest upperBound*/
+RC SqlEngine::getUpperBoundKey(vector<SelCond> cond, int& upperBoundKey){
+	
+	upperBoundKey = INT_MAX;
+	for(int i = 0; i < cond.size(); i++) {
+		if(cond[i].attr == 1 && cond[i].comp == SelCond::LT || cond[i].comp == SelCond::LE || cond[i].comp == SelCond::EQ){
+			upperBoundKey = min(upperBoundKey, atoi(cond[i].value));		
+		}
+	}
+	
+	return 0;
+}
+
+
 
 bool SqlEngine::matchSelCond(const vector<SelCond>& cond, int key, string value){
 	
